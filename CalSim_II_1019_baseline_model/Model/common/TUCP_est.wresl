@@ -1,0 +1,80 @@
+!!!!Dry/Crit wyt_sac relaxations              
+! Relax X2 compliance positions by kms            
+
+define SpringX2RoeDryRelax     {value 0.}
+define SpringX2RoeCritRelax    {value 0.}
+define SpringX2ChsDryRelax     {value 0.}
+define SpringX2ChsCritRelax    {value 0.}
+define SpringX2CnfDryRelax     {value 0.}
+define SpringX2CnfCritRelax    {value 0.}
+
+! Relax Ag (Jersey Point/Emmaton/Collinsville) WQ EC stds by factors
+define JP_wq_DryRelaxFac       {value 1.0}
+define JP_wq_CritRelaxFac      {value 1.25} !@jmg - Crit year factor applied to 7 driest years via special WYT
+
+define EM_wq_DryRelaxFac       {value 1.0} !TUCP: 1/19/16 summary of '14-'15 Emmaton electric conductivity (EC) compliance location was moved to Threemile Slough for June to Aug 15.  (~4 km east)
+define EM_wq_CritRelaxFac      {value 1.25}  !@jmg - Crit year factor applied to 7 driest years via special WYT
+
+define CO_wq_DryRelaxFac       {value 1.0}
+define CO_wq_CritRelaxFac      {value 1.0}
+
+! Relax Rock Slough's (MI) WQ Cl std by factor | d1641 max: 225 mg/l late summer/fall dry/crit years | secondary EPA MCL for chloride: 250 mg/l (recommended) (max factor 1.11) 500 mg/l (upper) (max factor 2.22)
+define RS_wq_DryRelaxFac       {value 1.0}
+define RS_wq_CritRelaxFac      {value 1.0}
+
+! Relax NDOI to percentage of standard (<1)
+define DrySacNDOrelaxFrac      {value 1.00}
+define CritSacNDOrelaxFrac     {value 0.75}  !@jmg 2017.08.15 - applying critical year to just 7 driest years using specified flag
+define LowPMIJanDOAdj          {value 0.75}   !set to same as changed value(s) above
+
+! Relax Rio Vista by subtracting cfs  !TUCP: 1/19/16 summary: Sacramento Q @ RV >= 2,000 cfs on a monthly average from September to November 15.
+
+define RVRelaxDrySacSept       {value 0} !d1641:3000       !
+define RVRelaxDrySacOct        {value 0} !d1641:4000
+define RVRelaxDrySacNov        {value 0} !d1641:4500
+
+define RVRelaxCritSacSept      {value 1000.} !d1641:3000	   !subtract max 1000  !@jmg 2017.08.15 - applying critical year factors to specified 7 driest years
+define RVRelaxCritSacOct       {value 1000.} !d1641:3000	   !subtract max 1000
+define RVRelaxCritSacNov       {value 1000.} !d1641:3500       !subtract max 1000  (conservative for mid-nov) 
+								    
+!!!! RPA relaxations
+! Relax X2 compliance positions by kms
+define FallX2RoeDryRelax     {value 0.}
+define FallX2RoeCritRelax    {value 0.}
+define FallX2ChsDryRelax     {value 0.}
+define FallX2ChsCritRelax    {value 0.}
+define FallX2CnfDryRelax     {value 0.}
+define FallX2CnfCritRelax    {value 0.}
+
+
+
+/* in progress merge - use separate study for non-prj cuts
+! Cut certain non-project Sac Basin deliveries in extreme years by percentage  
+!svar SacNPDelivCut_Switch {value int(0)}  !0: cuts off; 1: cuts on  (setting PerDel_EYNP set to 100% isn't enough to guarantee same results as baseline, as some Div arcs aren't explicitly constrained in baseline)
+
+define PerDel_EYNP {
+ case ExtrmYr {
+ condition wateryear == 1924 .or. wateryear == 1931 .or. wateryear == 1933 .or. wateryear == 1934 .or. wateryear == 1977 .or. wateryear ==1992
+ value 1}
+ case otherwise {
+ condition always 
+ value 1.} }
+
+define PerDel_EYNPdv {alias PerDel_EYNP kind 'PERCENT-DELIVERY' units 'none'}
+
+/* Non-project surface deliv percentage constraints applied to:
+
+
+C152A_NP  undefined cache/putah note: even if left at 100% (1) above, will differ from baseline arc that's less constrained 
+D104_NP   undefined Sac btw Keswick & Cow Creek ! non project stream diversion DSA58 note: as above
+
+Delta:
+
+D400B
+D404
+D406
+D409B
+D410
+D412
+D413
+*/
