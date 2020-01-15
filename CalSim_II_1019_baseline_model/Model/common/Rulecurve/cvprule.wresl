@@ -1,0 +1,159 @@
+!WRESL statements for CVP San Luis Rule Curve
+!
+!This code calculates the target storage level for San Luis reservoir
+!******************************************************************************************
+define CVPRULECV { std kind 'rulecurve' units 'TAF' }   !Decision variable of CVP San Luis rule curve
+
+define CVP_Rule_DelTar {
+  select  RuleCurve
+  from    CVPrule_deltar
+  given   deltar = acvpdel_tot_s
+  use     linear}
+define CVP_rule_1 {alias CVP_Rule_DelTar units 'NONE'}
+
+define CVP_Rule_Max {
+  select  RuleCurve
+  from    CVPrule_deltar
+  given   deltar = 9999
+  use     linear}
+
+define CVP_Rule_Cap_Shasta {
+  select  RuleCurve_Cap
+  from    CVPrule_cap_Shasta
+  given   shasta = S4(-1) + S44(-1) - S4_WTS(-1)
+  use     linear}
+define CVP_rule_Cap {alias CVP_Rule_Cap_Shasta units 'NONE'}
+
+define CVP_Rule_Sha_Cut {
+  select  Cut
+  from    CVPrule_sha
+  given   Northern = S4(prevSep)+S44(prevSep)-S4_WTS(prevSep)! + S8(prevSep)
+  use     linear}
+define CVP_rule_2 {alias CVP_Rule_Sha_Cut units 'NONE'}
+
+define CVPRuleDrainTar {value init_CVPRuleDrainTar
+                            + max(acvpdel_tot_s - 2000.,0.)*0.1}  !10% buffer for delivery in excess of 2 MAF
+define CVPRuleDrainTarDV {alias CVPRuleDrainTar kind 'rulecv-calc' units 'taf'}
+
+!MBK ADD 
+define remainDem_SOD_CVP {
+    case OctToApr {
+        condition   range(month,oct,apr)
+        value       0.  }
+    case May {
+        condition   month == may
+        value       cvpdemfinal_may + cvpdemfinal_jun + cvpdemfinal_jul + cvpdemfinal_aug + cvpdemfinal_sep }
+    case Jun {
+        condition   month == jun
+        value       cvpdemfinal_jun + cvpdemfinal_jul + cvpdemfinal_aug + cvpdemfinal_sep   }
+    case Jul {
+        condition   month == jul
+        value       cvpdemfinal_jul + cvpdemfinal_aug + cvpdemfinal_sep }
+    case Aug {
+        condition   month == Aug
+        value       cvpdemfinal_aug + cvpdemfinal_sep   }
+    case Sep {
+        condition   month == Sep
+        value       cvpdemfinal_sep }
+}
+
+define remainDem_SOD_CVPDV {alias remainDem_SOD_CVP kind 'rulecv-calc' units 'taf'}
+
+define Req_Exp_CVP_NowtoSep {
+    case AprToDec {
+        condition   range(month,apr,Sep)
+        value       max(0.,remainDem_SOD_CVP + CVPRuleDrainTar - S11(-1))   }
+    case otherwise {
+        condition   always
+        value       0.  }
+}
+
+define Req_Exp_CVP_NowtoSepDV {alias Req_Exp_CVP_NowtoSep kind 'rulecv-calc' units 'taf'}
+
+define remain_months_CVP {     !Remaining months until September
+    case JanToSep {
+        condition range(month,jan,sep)
+        value   12. - month + 1.    }
+    case OctToDec {
+        condition   always
+        value       0.  }
+}
+
+define remain_months_CVPDV {alias remain_months_CVP kind 'rulecv-calc' units 'MONTHS'}
+
+define Required_Exports_CVP {
+    case MayToSep{
+        condition   range(month,may,sep)
+        value       Req_Exp_CVP_NowtoSep/remain_months_CVP  }
+    case otherwise {
+        condition   always
+        value       0.  }
+}
+
+define Required_Exports_CVPDV {alias Required_Exports_CVP kind 'rulecv-calc' units 'taf'}
+
+define change_SL_CVP {
+    case May {
+        condition   month == may
+        value       Required_Exports_CVP - cvpdemfinal_may  }
+    case Jun {
+        condition   month == jun
+        value       Required_Exports_CVP - cvpdemfinal_jun  }
+    case Jul {
+        condition   month == jul
+        value       Required_Exports_CVP - cvpdemfinal_jul  }
+    case Aug {
+        condition   month == aug
+        value       Required_Exports_CVP - cvpdemfinal_aug  }
+    case Sep {
+        condition   month == sep
+        value       Required_Exports_CVP - cvpdemfinal_sep  }
+    case otherwise {
+        condition   always
+        value       0.  }
+}
+
+define change_SL_CVPDV {alias change_SL_CVP kind 'rulecv-calc' units 'taf'}
+
+define CVPRULEcalc {
+     case Oct {
+          condition month == oct
+          value     max(CVPRuleDrainTar, CVP_Rule_Max * CVP_Rule_Sha_Cut * month/6.)}
+     case NovToDec {
+          condition month >= nov .and. month <= dec
+          value     max(CVPRuleDrainTar, CVP_Rule_Max * CVP_Rule_Sha_Cut * month/6., CVPRULECV(-1))}
+     case JanToFeb {
+          condition month >= jan .and. month <= feb
+         value     max(CVPRuleDrainTar, CVP_Rule_Max * CVP_Rule_Sha_Cut * month/6., CVPRULECV(-1))}
+     case MarthruApr {
+          condition month >= mar .and. month <= apr
+         value     max(CVPRuleDrainTar, CVP_Rule_DelTar, CVPRULECV(-1))}
+     case MaytoJun {
+          condition range(month,may,jun)
+        value       S11(-1) + change_SL_CVP}
+      case July {
+           condition month == jul
+        value       max((CVPRuleCV(-1)+S11Level2)*0.5,S11(-1) + change_SL_CVP)}
+       case AugSep {
+           condition month >= Aug .and. month <= Sep
+         value       S11(-1) + change_SL_CVP}
+ }
+
+! goal revised to be conditional on Shasta and Folsom storage.  This affects balancing 
+! decisions between nod and sod storage, and the calculation of estimated cvp export 
+! which is used to set the upper bound on C400_MIF.  This edit allows the removal of the 
+! penalty for pumping above H&S when shasta and folsom are low.  
+define CvpRuleCalc1 {
+    case RClowshasta {
+        condition   S4(-1) < 1500.
+        value       S11Level2}
+    case RClowShastaFolsom {
+        condition   S8(-1) < 400. .and. S4(-1) < 2000.
+        value       S11Level2}
+    case otherwise {
+        condition   always 
+        value       max(S11Level2,min(CvpRuleCalc,/*CVP_Rule_Cap_Shasta,*/S11Level4))}
+}
+
+goal setCVPRULECV { CVPRULECV = CVPRulecalc1 }
+

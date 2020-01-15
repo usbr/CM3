@@ -1,0 +1,20 @@
+!! TRINITY Minimum Flow Code
+!       code by J. Burke
+
+! Get the minimum flow required at TRINITY (C94)
+define Minflow_C100ROD { 
+       select       river_q
+       from         Trinitymin
+       where        month=month, wyt_TRIN=wyt_TRIN}
+
+define Minflow_C100 {
+    case TFFA {
+        condition month>JUL .and. wyt_TRIN>1
+        value Minflow_C100ROD + 420.14 }
+    case otherwise {
+        condition always 
+        value Minflow_C100ROD }
+}
+
+! Set the minimum flow goal       
+goal TrinityMin {C100_MIF < MINFLOW_C100 }

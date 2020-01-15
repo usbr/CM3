@@ -1,0 +1,40 @@
+! This is the North of Delta include file
+
+include 'american\NimbusHistMinQ.wresl'
+include 'american\HSt_base.wresl'
+include 'american\FolRuleCurv.wresl'
+include 'american\NimbusPower.wresl'
+include 'american\FMPInput.wresl'
+
+include 'Clear_Creek\clear_ck_min.wresl'
+
+include 'Sacramento\Keswickmin.wresl'
+include 'Sacramento\RedBluff_bypassflow.wresl'
+include 'Sacramento\RedBluffOps.wresl'
+include 'Sacramento\HamiltonCity_bypassflow.wresl'
+include 'Sacramento\NCP_relax.wresl'
+include 'Sacramento\ShaRuleCurv.wresl'
+include 'Sacramento\KeswickPower.wresl'
+include 'Sacramento\KnightsLandingOps.wresl'
+include 'Sacramento\setdailyadjmif.wresl'
+
+include 'Trinity\Trinitymin.wresl'
+include 'Trinity\trinity_import.wresl'
+include 'Trinity\TrinRuleCurv.wresl'
+include 'Trinity\TrinityDamPower.wresl'
+include 'Trinity\LewistonSpill.wresl'
+
+include 'Sacramento\NODOS\NODOS_diversion.wresl'
+include 'Sacramento\NODOS\WQ\NODOS_div_x2limit.wresl'
+!define ERP_C5MIF {value 0.}                                !DEBUGGING
+!include 'Sacramento\NODOS\ERP\NODOS_ERP.wresl'
+
+include 'Sacramento\GCCanalLosses.wresl'
+include 'Sacramento\Stony_Creek\StonyCr_main.wresl'
+include 'Sacramento\TCGCIntertie.wresl'
+
+include 'feather\feather_special.wresl'
+include 'feather\OroRuleCurv.wresl'
+include 'feather\ThermalitoPower.wresl'
+
+include 'Balance.wresl'
