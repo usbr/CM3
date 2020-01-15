@@ -1,0 +1,40 @@
+!First, connect the Rock Slough, Old River and Victoria Canal intakes to D416 and D408.
+goal connect_D408 {D408 = D408_OR + D408_VC}
+goal connect_D416 {D416 = D408_RS}
+
+!Connect Mokelumne Intertie to Freeport diversion and limit to interie diversion planned in cycle 1.
+goal connect_MOK_Intertie {I424 = D168B_ccwd}
+
+!Limit LV water right to Delta Surplus
+goal lim_LVright_toDS {D408_DS < 1000.*C407_CVP + 1000.*C407_SWP}
+
+!Limit transfers to in-Delta
+goal lim_TX {D404 + D409B + D410 + D412 + D413 + D408_TX < demand_D404 + demand_D409B + demand_D410 + demand_D412 + demand_D413}
+
+/*
+!In-Delta transfers guided to come first from D410, then distributed among the others
+!This is to prevent CalSim runs from having different sources, which can change flows
+!in the south delta and cloud discerning other effects of alternatives.
+
+GOAL LIM_D408_TX_PRESETUP {D408_TX < D408_TX[PRESETUP]}
+
+DEFINE TX_from_D410 {value min(demand_D410,D408_TX[PRESETUP])}
+DEFINE TX_from_D412 {value min(demand_D412,max(0.,D408_TX[PRESETUP]- TX_from_D410))}
+DEFINE TX_from_D413 {value min(demand_D413,max(0.,D408_TX[PRESETUP]- TX_from_D410 - TX_from_D412))}
+DEFINE TX_from_D404 {value min(demand_D404,max(0.,D408_TX[PRESETUP]- TX_from_D410 - TX_from_D412 - TX_from_D413))}
+DEFINE TX_from_D409B {value min(demand_D409B,max(0.,D408_TX[PRESETUP]- TX_from_D410 - TX_from_D412 - TX_from_D413 - TX_from_D404))}
+
+goal lim_D410_with_TX {D410 < demand_D410 - TX_from_D410}
+goal lim_D412_with_TX {D412 < demand_D412 - TX_from_D412}
+goal lim_D413_with_TX {D413 < demand_D413 - TX_from_D413}
+goal lim_D404_with_TX {D404 < demand_D404 - TX_from_D404}
+goal lim_D409B_with_TX {D409B < demand_D409B - TX_from_D409B}
+
+define d408_tx_presetup {alias D408_TX[PRESETUP] kind 'flow-delivery' units 'cfs'}
+
+DEFINE TX_from_D410_ {alias TX_from_D410 kind 'transfer' units 'cfs'}
+DEFINE TX_from_D412_ {alias TX_from_D412 kind 'transfer' units 'cfs'}
+DEFINE TX_from_D413_ {alias TX_from_D413 kind 'transfer' units 'cfs'}
+DEFINE TX_from_D404_ {alias TX_from_D404 kind 'transfer' units 'cfs'}
+DEFINE TX_from_D409B_ {alias TX_from_D409B kind 'transfer' units 'cfs'}
+*/
