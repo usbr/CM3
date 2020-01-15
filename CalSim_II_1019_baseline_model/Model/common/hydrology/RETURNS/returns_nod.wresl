@@ -1,0 +1,166 @@
+/* This file contains diversion return flow equations for North of Delta
+   Diversion requirements.  Equations use variable basin efficiencies.
+   Originally coded by RAJ 8/99
+*/
+!Modified by DJE 12/8/00
+!Modified by AJD 3/01
+
+! DSA non recoverable loss factors
+define nrl_58 {VALUE 0.15}
+define nrl_10 {VALUE 0.10}
+define nrl_12 {VALUE 0.10}
+define nrl_15 {VALUE 0.10}
+define nrl_69 {VALUE 0.10}
+define nrl_70 {VALUE 0.10}
+define nrl_65 {VALUE 0.10}
+
+! DSA efficiencies
+define eff_58 {timeseries kind 'efficiency' units 'percent'}
+!define eff_10 {timeseries kind 'efficiency' units 'percent'}
+!define eff_12 {timeseries kind 'efficiency' units 'percent'}
+!define eff_15 {timeseries kind 'efficiency' units 'percent'}
+define eff_69 {timeseries kind 'efficiency' units 'percent'}
+define eff_70 {timeseries kind 'efficiency' units 'percent'}
+define eff_65 {timeseries kind 'efficiency' units 'percent'}
+
+
+! DSA return flow factors
+define rf_58_agpomi {VALUE 1 - (1+nrl_58)*eff_58 }
+define rf_58_pimi {timeseries kind 'Return-Flow' units 'taf' convert 'cfs'}
+!define rf_10 {VALUE 1 - (1+nrl_10)*eff_10 }
+!define rf_12 {VALUE 1 - (1+nrl_12)*eff_12 }
+!define rf_15 {VALUE 1 - (1+nrl_15)*eff_15 }
+define rf_69 {VALUE 1 - (1+nrl_69)*eff_69 }
+define rf_70 {VALUE 1 - (1+nrl_70)*eff_70 }
+define rf_65 {VALUE 1 - (1+nrl_65)*eff_65 }
+
+
+! DSA Indoor M&I return flow factors
+define rf_pimi {VALUE 1.0 }
+
+
+
+define percentFRWP_imi {timeseries kind 'percent-mi-indoor' units 'none'}
+define percentFRWP_omi {value 1. - percentFRWP_imi}
+
+! define return flow prject and non prject components
+!define r109_prj {STD KIND 'flow' UNITS 'CFS' }  ! DSA 58 prject returns
+!define r109_np   {STD KIND 'flow' UNITS 'CFS' }  ! DSA 58 non prject returns
+
+!define r184A_prj  {STD KIND 'flow' UNITS 'CFS' } ! DSA 12 prject returns
+!define r184A_np    {STD KIND 'flow' UNITS 'CFS' } ! DSA 12 non prject returns
+
+!define r129_prj  {STD KIND 'flow' UNITS 'CFS' }  ! DSA 15 prject returns
+!define r129_np    {STD KIND 'flow' UNITS 'CFS' }  ! DSA 15 non prject returns
+
+!define r223_prj {STD KIND 'flow' UNITS 'CFS' }  ! DSA 69 prject returns
+!define r223_np   {STD KIND 'flow' UNITS 'CFS' }  ! DSA 69 non prject returns
+
+!define r169_prj {STD KIND 'flow' UNITS 'CFS' }  ! DSA 70 prject returns
+!define r169_np   {STD KIND 'flow' UNITS 'CFS' }  ! DSA 70 non prject returns
+
+!define r156_prj {STD KIND 'flow' UNITS 'CFS' }  ! DSA 65 prject retuns
+!define r156_np   {STD KIND 'flow' UNITS 'CFS' }  ! DSA 65 non prject returns
+
+!  Split up return flows between prject and non prject
+goal set_c106_prj_pimi {C106_prj_pimi = rf_58_pimi}
+goal set_r109_prj  {r109_prj = rf_58_agpomi*C106_prj_agpomi +rf_58_pimi - rf_58_agpomi*gr60AWprj }   ! DSA 58 prject returns
+goal set_r109_np   {r109_np = rf_58_agpomi*C106_np - rf_58_agpomi*gr60AWnp }     !DSA 58 non prject returns
+goal set_r109      {r109 = r109_prj + r109_np }                    ! DSA58 Total returns
+
+!(DJE)Remove C209_pmi from np returns
+goal set_r223_prj     {r223_prj     = r223_prj_dr + r223_prj_exc}
+goal set_r223_prj_dr  {r223_prj_dr  = rf_69*C209_prj_dr - rf_69*gr65AWprj }  ! DSA 69 prject returns
+goal set_r223_prj_exc {r223_prj_exc = rf_69*C209_prj_exc}                      ! DSA 69 non prject returns - Excess flow
+goal set_r223_np      {r223_np      = r223_np_dr + r223_np_exc}
+goal set_r223_np_dr   {r223_np_dr   = rf_69*C209_np_dr - rf_69*gr65AWnp}      ! DSA 69 non prject returns
+goal set_r223_np_exc  {r223_np_exc  = rf_69*C209_np_exc}                      ! DSA 69 non prject returns - Excess flow
+goal set_r223_pimi    {r223_pimi    = rf_pimi*C209_pimi}                   ! DSA 69 project Indoor M&I returns
+goal set_r223         {r223         = r223_prj + r223_np + r223_pimi}                      ! DSA 69 total returns
+
+goal set_r169_prj      {r169_prj = r169prj_imi + r169prj_other}     ! DSA 70 project returns
+goal set_r169prj_imi   {r169prj_imi = rf_pimi*C306prj_imi}
+goal set_r169prj_other {r169prj_other = rf_70*C306prj_other - rf_70*gr66AWprj}
+
+goal set_r169_np      {r169_np = r169np_imi + r169np_other}        ! DSA 70 non project returns
+goal set_r169np_imi   {r169np_imi = rf_pimi*C306np_imi}
+goal set_r169np_other {r169np_other = rf_70*C306np_other - rf_70*gr66AWnp}
+
+
+!FRWP code  begin
+goal set_r169_frwp   {r169_frwp = r169_frwp_cvp + r169_frwp_other + r169_frwp_excess}
+
+goal set_r169_cvp    {r169_frwp_cvp = rf_70 * D168c_frwp_pmi * percentFRWP_omi +
+                                  rf_pimi * D168c_frwp_pmi * percentFRWP_imi }
+
+goal set_r169_oth    {r169_frwp_other = rf_70 * D168c_other_pmi * percentFRWP_omi +
+                                    rf_pimi * D168c_other_pmi * percentFRWP_imi }
+
+goal set_r169_excess {r169_frwp_excess = rf_70 * D168c_excess_pmi * percentFRWP_omi +
+                                     rf_70 * D168c_excess_pmi * percentFRWP_imi}           !don't use rf_pimi - otherwise excess diverion will not occur - only slightly inaccurate
+!FRWP code end
+
+goal set_r169    {r169 = r169_prj + r169_np + r169_frwp }         ! DSA 70 total returns
+
+! *******************************************************
+! El Dorado ID and El Dorado County Water Agency Returns to Cosumnes
+! Placed at node 504 to more easily incorporate into delta inflows for ANN estimates
+
+define R504_prj {STD KIND 'flow' UNITS 'CFS' }  ! DSA 70 prject returns
+define R504_np   {STD KIND 'flow' UNITS 'CFS' }  ! DSA 70 non prject returns
+
+define d8_ed_prj_imi {value min(adj_d8f_pmi + adj_d8i_pmi, prj_ed_imi * taf_cfs) }
+define d8_ed_prj_omi {value adj_d8f_pmi + adj_d8i_pmi - d8_ed_prj_imi } 
+define d8_ed_np_imi  {value min(dem_d8f_wr               , np_ed_imi  * taf_cfs) }
+define d8_ed_np_omi  {value dem_d8f_wr                - d8_ed_np_imi }
+
+goal set_R504_prj {R504_prj = d8_ed_prj - (1. - rf_70) * d8_ed_prj_omi }  !Proj water Return flow = Proj diversion - fraction not returned * outdoor use
+goal set_R504_np  {R504_np  = d8_ed_np  - (1. - rf_70) * d8_ed_np_omi  }  !Non Proj water Return flow = Non Proj diversion - fraction not returned * outdoor use
+goal set_R504     {R504 = R504_prj + R504_np}
+
+define R504est_prj {value adj_d8f_pmi + adj_d8i_pmi - (1. - rf_70) * d8_ed_prj_omi } 
+define R504est_np  {value dem_d8f_wr                - (1. - rf_70) * d8_ed_np_omi  }
+define R504est     {value R504est_prj + R504est_np}
+! *********************************************************
+
+
+goal set_156_prj {r156_prj = rf_65*C154_prj - rf_65*gr64AWprj}    ! DSA 65 project retuns
+goal set_156_np  {r156_np = rf_65*C154_np - rf_65*gr64AWnp }      ! DSA 65 non project returns
+goal set_156     {r156 = r156_prj + r156_np }                     ! DSA 65 total returns
+
+
+!Return flow from Feather River Service Area rice decomp
+
+define R135C_DCMP_MAX {timeseries kind 'RETURN-FLOW' units 'taf'} ! This is the total return flow assuming 100% delivery of all decomp demand
+
+define decomp_del {
+    case February {
+        condition month==FEB
+        value D7C(-1)*cfs_taf(-1)+D7C(-2)*cfs_taf(-2)+D7C(-3)*cfs_taf(-3)+D7C(-4)*cfs_taf(-4)}
+    case other {
+        condition always
+        value 0.0   }
+}
+
+define decomp_deldv {alias decomp_del kind 'DECOMP-DELIVERY' units 'taf'}
+
+define decomp_dem {
+    case February {
+        condition month==FEB
+        value (dem_D7C_DCMP(-1)+dem_D7C_DCMP(-2)+dem_D7C_DCMP(-3)+dem_D7C_DCMP(-4)) }
+    case other{
+        condition always
+        value 1.0   }
+}
+
+define decomp_per {
+    case February {
+        condition month==FEB
+        value decomp_del/decomp_dem}
+    case other {
+        condition always
+        value 0.}
+}
+
+!set the return flow equal to the maximum return flow * the percent of max demand delivered
+goal set_r135C_dcmp {r135c_dcmp = r135c_dcmp_max*decomp_per*taf_cfs} 
