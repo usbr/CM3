@@ -1,0 +1,359 @@
+! Rich Juricich & Ajay Dev 10/19/1999
+! Revised by USBR-SRS 12/08/99
+! Combined System-wide and SOD - 10/30/2017
+
+! Calculate allocation cuts by category
+
+!*********************************************************************
+
+! how much needs to be cut system-wide
+define cut_delivery_sys {value  max(min(acvpdem_dr_sys, acvpdem_tot_sys) - deltar_cvp_sys, 0.0) } 
+define cut_delivery_s   {value  acvpdem_total_s - deltar_cvp_s}   
+
+/* 
+************************************************************************************
+System-wide allocation perspective 
+************************************************************************************
+*/
+
+! Delivery Reduction Percent by Tier
+define tier0cut_sys {
+   case Critical  {condition wyt_SHASTA_CVP == 4 value  0.25} ! SC cut to 75%
+   case otherwise {condition always              value  0.00}
+}
+define tier0excut_sys {
+       case Critical   { condition wyt_SHASTA_CVP == 4  value  0.23} !EX/RF cut to 77% not 75%
+       case otherwise  { condition always               value  0.00}
+}
+define tier1cut_sys {value 0.25} !1st Tier Reduced 1st
+define tier2cut_sys {value 0.25} !2nd Tier Reduced Next
+define tier3cut_sys {value 0.25} !3rd Tier Reduced Next
+define tier4cut_sys {value 0.25} !4th Tier Reduced Next
+define tier5cut_sys {value 0.50} !5th Tier Reduced Next
+
+!************ Tier 0 **************
+!*  takes SC, EX, RF down to 75%  *         No intermediate steps here.  If the ShastaIndex is critical, then
+!*  when ShastaIndex Critical     *         Settlement Contracts and Exchange Contracts and Refuge Contracts are cut from 100% to 75%.
+!**********************************
+define cut0_sys     { value tier0cut_sys*acvpdem_psc_sys + tier0excut_sys*acvpdem_pex_sys + tier0cut_sys*acvpdem_prf_sys }
+define percut0_sys  { value tier0cut_sys }
+define cut_psc0_sys { value tier0cut_sys*acvpdem_psc_sys }
+define cut_pex0_sys { value tier0excut_sys*acvpdem_pex_sys }
+define cut_prf0_sys { value tier0cut_sys*acvpdem_prf_sys }
+
+!*********** Tier 1 ************
+!*    takes AG down to 75%     *
+!*******************************
+define cut1_sys     { value max(0.0, cut_delivery_sys - cut0_sys) }
+define percut1_sys  { value min(tier1cut_sys, cut1_sys/acvpdem_pag_sys) }
+define cut_pag1_sys { value percut1_sys*acvpdem_pag_sys }
+
+!*********** Tier 2 ************
+!*  takes AG to 50%; MI to 75% *
+!*******************************
+define cut2_sys     { value max(0.0, cut1_sys - cut_pag1_sys) }
+define percut2_sys  { value min(tier2cut_sys, (cut2_sys/(acvpdem_pag_sys + acvpdem_pmi_sys))) }
+define cut_pag2_sys { value percut2_sys*acvpdem_pag_sys }
+define cut_pmi2_sys { value percut2_sys*acvpdem_pmi_sys }
+
+!*********** Tier 3 ***********
+!  takes AG to 25%            *
+!******************************
+define cut3_sys     { value max(0.0, cut2_sys - cut_pag2_sys - cut_pmi2_sys) }
+define percut3_sys  { value min(tier3cut_sys, (cut3_sys/acvpdem_pag_sys)) }
+define cut_pag3_sys { value percut3_sys*acvpdem_pag_sys }
+
+!*********** Tier 4 *********
+!  takes AG to 0; MI to 50% *
+!****************************
+define cut4_sys     { value max(0.0, cut3_sys - cut_pag3_sys) }
+define percut4_sys  { value min(tier4cut_sys, (cut4_sys/(acvpdem_pag_sys + acvpdem_pmi_sys))) }
+define cut_pag4_sys { value percut4_sys*acvpdem_pag_sys }
+define cut_pmi4_sys { value percut4_sys*acvpdem_pmi_sys }
+
+!*********** Tier 5 *********
+!  takes MI to 0%          *
+!****************************
+!define cut5_sys     { value max(0.0, cut4_sys - cut_pag4_sys - cut_pmi4_sys) }
+!define percut5_sys  { value min(tier5cut_sys, (cut5_sys/acvpdem_pmi_sys)) }
+!define cut_pmi5_sys { value percut5_sys*acvpdem_pmi_sys }
+
+!*********** Tier 6 *********
+! cut SC and EX below contract obligations
+! Note that RF is not cut
+!****************************
+define cut6_sys     { value max(0.0, cut4_sys - cut_pmi4_sys - cut_pag4_sys) }
+
+/* 
+************************************************************************************
+South of Delta specific allocation perspective 
+************************************************************************************
+*/
+
+define tier1cut_s {value 0.25} !1st Tier Reduced 1st
+define tier2cut_s {value 0.25} !2nd Tier Reduced Next
+define tier3cut_s {value 0.25} !3rd Tier Reduced Next
+define tier4cut_s {value 0.25} !4th Tier Reduced Next
+define tier5cut_s {value 0.50} !5th Tier Reduced Next
+
+!*********** Tier 0 ************
+!*  takes EX, RF down to 75%   *         No intermediate steps here.  If the ShastaIndex is critical, then
+!*  when ShastaIndex Critical  *         Exchange Contracts and Refuge Contracts are cut from 100% to 75%.
+!*******************************
+define cut0_s     { value tier0excut_sys*acvpdem_pex_s + tier0cut_sys*acvpdem_prf_s }
+define percut0_ex_s {value tier0excut_sys}
+define percut0_rf_s { value tier0cut_sys }
+define cut_pex0_s { value tier0excut_sys*acvpdem_pex_s }
+define cut_prf0_s { value tier0cut_sys*acvpdem_prf_s }
+
+!*********** Tier 1 ************
+!*    takes AG down to 75%     *
+!*******************************
+define cut1_s     { value max(0.0, cut_delivery_s - cut0_s) }
+define percut1_s  { value min(tier1cut_s, cut1_s/acvpdem_pag_s) }
+define cut_pag1_s { value percut1_s*acvpdem_pag_s }
+
+!*********** Tier 2 ************
+!*  takes AG to 50%; MI to 75% *
+!*******************************
+define cut2_s     { value max(0.0, cut1_s - cut_pag1_s) }
+define percut2_s  { value min(tier2cut_s, (cut2_s/(acvpdem_pag_s + acvpdem_pmi_s))) }
+define cut_pag2_s { value percut2_s*acvpdem_pag_s }
+define cut_pmi2_s { value percut2_s*acvpdem_pmi_s }
+
+!*********** Tier 3 ***********
+!  takes AG to 25%            *
+!******************************
+define cut3_s     { value max(0.0, cut2_s - cut_pag2_s - cut_pmi2_s) }
+define percut3_s  { value min(tier3cut_s, (cut3_s/acvpdem_pag_s)) }
+define cut_pag3_s { value percut3_s*acvpdem_pag_s }
+
+!*********** Tier 4 *********
+!  takes AG to 0; MI to 50% *
+!****************************
+define cut4_s     { value max(0.0, cut3_s - cut_pag3_s) }
+define percut4_s  { value min(tier4cut_s, (cut4_s/(acvpdem_pag_s + acvpdem_pmi_s))) }
+define cut_pag4_s { value percut4_s*acvpdem_pag_s }
+define cut_pmi4_s { value percut4_s*acvpdem_pmi_s }
+
+!*********** Tier 5 *********
+!  takes MI to 0%          *
+!****************************
+!define cut5_s     { value max(0.0, cut4_s - cut_pag4_s - cut_pmi4_s) }
+!define percut5_s  { value min(tier5cut_s, (cut5_s/acvpdem_pmi_s)) }
+!define cut_pmi5_s { value percut5_s*acvpdem_pmi_s }
+
+!********* Tier 6 *******
+! takes EX & RF to 0%   *
+!************************
+
+define cut6_s     { value max(0.0, cut4_s - cut_pmi4_s - cut_pag4_s) }
+
+/* 
+************************************************************************************
+Based on initial assessment of allocation, proceed with Tier 6 cuts if needed
+First cut Exchange down to 40%, then cut SC to 40%, then cut both EX and SC
+equally
+************************************************************************************
+*/
+
+define cut6_total   { value max(cut6_sys, cut6_s) } 
+define percut6_ex1  { value min(0.60-tier0excut_sys, cut6_s/acvpdem_pex_sys) }  
+define cut_pex6a    { value percut6_ex1 * acvpdem_pex_sys}
+
+/* of the next two lines, use the top one for SC/EX cuts, use the bottom line for only EX cuts */
+!define percut6_sc1  { value min(0.60-tier0cut_sys, (cut6_total-cut_pex6a)/acvpdem_psc_sys) }
+define percut6_sc1  { value 0.0 }
+
+define cut_psc6a    { value percut6_sc1 * acvpdem_psc_sys}
+
+define cut6_remain     { value cut6_total - cut_pex6a - cut_psc6a}
+define cut6_remain_ex  { value cut6_s - cut_pex6a }
+
+/* of the next two lines, use the top one for SC/EX cuts, use the bottom line for only EX cuts */
+!define percut6_exsc { value cut6_remain/(acvpdem_psc_sys + acvpdem_pex_s)}
+define percut6_exsc { value min(1.0 - tier0excut_sys - percut6_ex1, cut6_remain_ex/acvpdem_pex_s)}
+
+define cut_pex6b    { value percut6_exsc * acvpdem_pex_s}
+
+/* of the next two lines, use the top one for SC/EX cuts, use the bottom line for only EX cuts */
+!define cut_psc6b    { value percut6_exsc * acvpdem_psc_sys}
+define cut_psc6b    { value 0.0}
+
+
+define cut_pex6_relaxDV {std kind 'alloc-taf' units 'taf'}
+define cut_pex6_relax {
+    case first_yr {condition month<MAR .and. wateryear==1922 value 0.}
+    case March { 
+        condition month>=MAR .and. month<=MAY
+        !value min(cut_pex6a+cut_pex6b, s11(-1)-90.)}
+        value 0.0}   !@BOR:JMG - removing relaxation of Exchange contractor cuts
+    case otherwise {
+        condition always
+        value cut_pex6_relaxDV(-1)}
+}
+goal setcut_pex6_relaxDV {cut_pex6_relaxDV = cut_pex6_relax}
+
+define percut6_ex {value max(0., (cut_pex6a + cut_pex6b - cut_pex6_relax)/acvpdem_pex_sys)}
+
+define cut0_sys_  {alias cut0_sys kind 'debug-taf' units 'taf'}
+define cut1_sys_  {alias cut1_sys kind 'debug-taf' units 'taf'}
+define cut2_sys_  {alias cut2_sys kind 'debug-taf' units 'taf'}
+define cut3_sys_  {alias cut3_sys kind 'debug-taf' units 'taf'}
+define cut4_sys_  {alias cut4_sys kind 'debug-taf' units 'taf'}
+!define cut5_sys_  {alias cut5_sys kind 'debug-taf' units 'taf'}
+define cut6_sys_  {alias cut6_sys kind 'debug-taf' units 'taf'}
+define cut6_s_    {alias cut6_s   kind 'debug-taf' units 'taf'}
+define cut6_total_  {alias cut6_total kind 'debug-taf' units 'taf'}
+define cut_pex6_sys_  {alias max(0., cut_pex6a + cut_pex6b - cut_pex6_relax) kind 'debug-taf' units 'taf'}
+define cut_psc6_sys_  {alias cut_psc6a + cut_psc6b kind 'debug-taf' units 'taf'}
+
+
+!**********  Totals  ********
+define cut_pag_sys { value cut_pag1_sys + cut_pag2_sys + cut_pag3_sys + cut_pag4_sys}
+define cut_pmi_sys { value cut_pmi2_sys + cut_pmi4_sys /*+ cut_pmi5_sys*/}
+define cut_prf_sys { value cut_prf0_sys /*+ cut_prf6_sys*/}
+define cut_psc_sys { value cut_psc0_sys + cut_psc6a + cut_psc6b} 
+
+define cut_pag_s { value cut_pag1_s + cut_pag2_s + cut_pag3_s + cut_pag4_s}
+define cut_pmi_s { value cut_pmi2_s + cut_pmi4_s /*+ cut_pmi5_s */}
+define cut_pex_s { value cut_pex0_sys + max(0., cut_pex6a + cut_pex6b - cut_pex6_relax)}  
+define cut_prf_s { value cut_prf0_s /*+ cut_prf6_s*/ }
+
+
+
+!********** Allocation Percentages *********
+define alc_ag_sys { alias 1 - percut1_sys - percut2_sys - percut3_sys - percut4_sys kind 'percent-allocation' units 'none'}
+define alc_mi_sys { alias 1 - percut2_sys - percut4_sys /*- percut5_sys*/ kind 'percent-allocation' units 'none'}
+define alc_rf_sys { alias 1 - percut0_sys /*- percut6_sys*/ kind 'percent-allocation' units 'none'}
+define alc_sc_sys { alias 1 - percut0_sys - percut6_sc1 - percut6_exsc kind 'percent-allocation' units 'none'} 
+
+define alc_ag_s { alias 1 - percut1_s - percut2_s - percut3_s - percut4_s kind 'percent-allocation' units 'none'}
+define alc_mi_s { alias 1 - percut2_s - percut4_s /*- percut5_s*/ kind 'percent-allocation' units 'none'}
+define alc_ex_s { alias 1 - percut0_ex_s - percut6_ex kind 'percent-allocation' units 'none'} 
+define alc_rf_s { alias 1 - percut0_rf_s /*- percut6_s*/ kind 'percent-allocation' units 'none'}
+
+
+!********** Percent Delivery (Should equal the allocation) ****************
+! Calculate percent of full demand to deliver
+define perdel_cvpag_sys { !Percent of full delivery for AG
+    case highShasta1 {
+        condition month==MAY .and. (1 - cut_pag_sys/acvpdem_pag_sys)>0.75 .and. S4(-1)>4000.
+        value 1.0}
+    case highShasta2 {
+        condition month==MAY .and. (1 - cut_pag_sys/acvpdem_pag_sys)>0.6 .and. S4(-1)>4000.
+        value 1.2*(1 - cut_pag_sys/acvpdem_pag_sys)}
+    case otherwise {
+        condition always
+        value 1 - cut_pag_sys/acvpdem_pag_sys }
+}
+define perdel_cvpmi_sys { !Percent of full delivery for MI
+    case highShasta {
+        condition month==MAY .and. (1 - cut_pag_sys/acvpdem_pag_sys)>0.6 .and. S4(-1)>4000.
+        value 1.0}
+    case otherwise {
+        condition always
+        value 1 - cut_pmi_sys/acvpdem_pmi_sys }
+}
+define perdel_cvpsc_sys { value 1 - cut_psc_sys/acvpdem_psc_sys }   !Percent of full delivery for SC
+define perdel_cvprf_sys { value 1 - cut_prf_sys/acvpdem_prf_sys }   !Percent of full delivery for RF
+
+define perdel_cvpag_s1 { value 1 - cut_pag_s/acvpdem_pag_s }      !Percent of full delivery for AG
+define perdel_cvpmi_s1 { value 1 - cut_pmi_s/acvpdem_pmi_s }      !Percent of full delivery for MI
+! Logic added to consider Stage 1 transfer contribution to SOD Allocation 
+define dltar_pag_s_Stg1 {value perdel_cvpag_sys*acvpdem_pag_s + CVP_Targ*(1.-SaltCostFact_stg1)*0.932} ! Split CVP_Targ into ag and m&i by ratio of annual CVP SOD demands 
+define dltar_pmi_s_Stg1 {value perdel_cvpmi_sys*acvpdem_pmi_s + CVP_Targ*(1.-SaltCostFact_stg1)*0.068}
+define pdl_pag_sys_Stg1 {value dltar_pag_s_Stg1/acvpdem_pag_s}
+define pdl_pmi_sys_Stg1 {value dltar_pmi_s_Stg1/acvpdem_pmi_s}
+
+define perdel_cvpag_s_base {value perdel_cvpag_s1}  !@BOR:JMG - removing Stage1 transfers from consideration in allocation process {value min(perdel_cvpag_s1, pdl_pag_sys_Stg1)}      !Percent of full delivery for AG considering Stage 1 Transfers 
+define perdel_cvpmi_s_base {value perdel_cvpmi_s1}  !@BOR:JMG - removing Stage1 transfers from consideration in allocation process {value min(perdel_cvpmi_s1, pdl_pmi_sys_Stg1)}      !Percent of full delivery for MI considering Stage 1 Transfers 
+define perdel_cvpex_s_base { value 1 - cut_pex_s/acvpdem_pex_s }      !Percent of full delivery for Exchange
+define perdel_cvprf_s_base { value 1 - cut_prf_s/acvpdem_prf_s }      !Percent of full delivery for REF
+
+define perdel_cvpag_s {value perdel_cvpag_s_base + cvp_perdel_incAg  }      !Percent of full delivery for AG considering Stage 1 Transfers 
+define perdel_cvpmi_s {value perdel_cvpmi_s_base + cvp_perdel_incMI  }      !Percent of full delivery for MI considering Stage 1 Transfers 
+define perdel_cvpex_s {value perdel_cvpex_s_base  }      !Percent of full delivery for Exchange
+define perdel_cvprf_s {value perdel_cvprf_s_base  }      !Percent of full delivery for REF
+
+
+! Calculate current ANNUAL delivery based on perdel
+define acvpdel_pag_sys { value perdel_cvpag_sys * acvpdem_pag_sys}
+define acvpdel_pmi_sys { value perdel_cvpmi_sys * acvpdem_pmi_sys}
+define acvpdel_psc_sys { value perdel_cvpsc_sys * acvpdem_psc_sys}
+define acvpdel_prf_sys { value perdel_cvprf_sys * acvpdem_prf_sys}
+
+define acvpdel_ag_s { value perdel_cvpag_s * acvpdem_pag_s}
+define acvpdel_mi_s { value perdel_cvpmi_s * acvpdem_pmi_s}
+define acvpdel_ex_s { value perdel_cvpex_s * acvpdem_pex_s}
+define acvpdel_rf_s { value perdel_cvprf_s * acvpdem_prf_s}
+define acvpdel_tot_s { value acvpdel_ag_s + acvpdel_mi_s + acvpdel_ex_s + acvpdel_rf_s + acvpdem_pls_s }
+
+! Final Percent Delivery for output
+goal set_perdv_cvpag_s { perdv_cvpag_s =  perdel_cvpag_s_base }
+goal set_perdv_cvpmi_s { perdv_cvpmi_s =  perdel_cvpmi_s_base }
+goal set_perdv_cvpex_s { perdv_cvpex_s =  perdel_cvpex_s_base }
+goal set_perdv_cvprf_s { perdv_cvprf_s =  perdel_cvprf_s_base }
+define perdv_cvpagplus {alias perdel_cvpag_s_base + cvp_perdel_incAg kind 'percent-delivery' units 'none'}
+define perdv_cvpmiplus {alias perdel_cvpmi_s_base + cvp_perdel_incMI kind 'percent-delivery' units 'none'}
+
+define perdv_cvpag_sys { alias  perdel_cvpag_sys kind 'percent-delivery' units 'none'}
+define perdv_cvpmi_sys { alias  perdel_cvpmi_sys kind 'percent-delivery' units 'none'}
+define perdv_cvpsc_sys { alias  perdel_cvpsc_sys kind 'percent-delivery' units 'none'}
+define perdv_cvprf_sys { alias  perdel_cvprf_sys kind 'percent-delivery' units 'none'}
+
+
+! overall allocation - used to compute CVPSL rule curve Mar-Aug
+define perdel_s   { value min(1.0, deltar_cvp_s/acvpdem_total_s) }
+define perdel_sdv {alias perdel_s kind 'percent-delivery' units 'none'}
+
+
+
+! -------------------------------------------------------------------------
+! Calculate the delivery shortfall to Exchange contractors, accounting for 
+! demands at 707 that can't be reached by Friant water @jmg
+! @jmg 2016.11.09 adding a variable to track Exchange Contractors shortfall
+! @jmg 2016.11.18 - updated to correct PEX_short_annvol to not include D707 as
+!                   that delivery is not accessible by water from friant
+!                   **NOTE: could have hard-wired this to 140 TAF but the
+!                   following code allows the annual D707 demand to change with 
+!                   different inputs**
+define acvpdem707_pex_sdv {std kind 'demand-annual' units 'taf'}
+define acvpdem707_pex_s {    !@jmg sum up annual demand at D707 to correct the PEX shortfall
+                             ! for potential deliveries from Friant (Friant water cant'
+                             ! get to D707, so should be subtracted from shortage amt)
+
+       case Oct1922 {  ! special case for first wateryear, Sum Oct-Sep
+       condition month == OCT .and. wateryear == 1922
+       sum(i=0,11,1) dem_D707_pex(i) }
+
+       case Mar2003 {  ! special case for last wateryear, Sum Oct-Sep
+       condition month == MAR .and. wateryear == 2003
+       sum(i=prevOCT,SEP-month,1) dem_D707_pex(i) }
+
+       case March { ! March for wateryears 1922 - 2002
+       condition month == MAR .and. wateryear < 2003
+       sum(i=0,11,1) dem_D707_pex(i) }
+
+       case Rest {
+       condition always
+       value acvpdem707_pex_sdv(-1) }
+
+        }
+goal set_annual707_ex_s {acvpdem707_pex_sdv = acvpdem707_pex_s}
+define PEX_short_annvol {
+
+       case Critical {
+            condition wyt_SHASTA_CVP == 4
+            value     (0.77-perdel_cvpex_s)*(acvpdem_pex_sys-acvpdem707_pex_s)}
+       case rest {
+            condition always
+            value     (1.-perdel_cvpex_s)*(acvpdem_pex_sys-acvpdem707_pex_s)}
+       }
+       
+       
+       
+
+
+
+       

@@ -1,0 +1,19 @@
+==================
+1933_10_c06
+==================
+1933/10/31 cycle 6 (presetup): Infeasible.
+1933/10/31 cycle 6 (presetup): Linear relaxation not feasible.
+1933/10/31 cycle 6 (presetup): One or more of the following constraints might cause infeasibility:
+continuity40: - e40 - f40 - c40 -16.263440861290324 s40 = 0
+maxrelease42:  c42 < -100
+evap40: 61.48760330171982 e40 -0.18794926007588705 a40 = 2.2072232200871764
+c42total:  c42 - c42_exc - c42_mif = 0
+continuity17301:  c42 - l17301 - c17301 - d17301 = 0
+reach1:  c42 - c42_1 - c42_0 - c42_4 - c42_3 - c42_2 = 0
+
+(d:\itp\dwrbase_0426\common\system\systemtables_all\connectivity-table.wresl:1) continuity40: - e40 - f40 - c40 -16.263440861290324 s40 = 0
+(d:\itp\dwrbase_0426\common\system\systemtables_all\reservoir-table.wresl:1) maxrelease42:  c42 < -100
+(d:\itp\dwrbase_0426\common\system\systemtables_all\reservoir-table.wresl:1) evap40: 61.48760330171982 e40 -0.18794926007588705 a40 = 2.2072232200871764
+(d:\itp\dwrbase_0426\common\system\systemtables_all\channel-table.wresl:1) c42total:  c42 - c42_exc - c42_mif = 0
+(d:\itp\dwrbase_0426\common\system\systemtables_all\connectivity-table.wresl:1) continuity17301:  c42 - l17301 - c17301 - d17301 = 0
+(d:\itp\dwrbase_0426\common\northofdelta\sacramento\stony_creek\demands\creeklosses.wresl:1) reach1:  c42 - c42_1 - c42_0 - c42_4 - c42_3 - c42_2 = 0

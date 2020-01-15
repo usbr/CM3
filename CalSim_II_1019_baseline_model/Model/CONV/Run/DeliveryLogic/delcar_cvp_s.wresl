@@ -1,0 +1,321 @@
+/*
+File determines CVP SOD delivery target based Water Supply, D1641 and Export Limits and Supply Limits
+*/
+
+define perdv_cvpag_s { std kind 'percent-delivery' units 'none'}
+define perdv_cvpmi_s { std kind 'percent-delivery' units 'none'}
+define perdv_cvpex_s { std kind 'percent-delivery' units 'none'}
+define perdv_cvprf_s { std kind 'percent-delivery' units 'none'}
+
+define SACIND {select index from SacValleyIndex where wateryear=wateryear} !MBK SP add
+define estCVPExpThruAug {
+    case March { condition month==MAR select MarAug from EstExpCVP given index=SACIND use linear}
+    case April { condition month==APR select AprAug from EstExpCVP given index=SACIND use linear}
+    case May   { condition month==MAY select MayAug from EstExpCVP given index=SACIND use linear}
+    case otherwise {condition always value 0.}
+}
+define estCVPExpThruAugdv {alias estCVPExpThruAug kind 'EXP-CAPACITY' units 'TAF'}
+
+define factCVP_MarAug {select factor from ExportEstimate_CVP where month = Mar}
+define factCVP_AprAug {select factor from ExportEstimate_CVP where month = Apr}
+define factCVP_MayAug {select factor from ExportEstimate_CVP where month = May}
+
+define buffCVP_MarAug {select buffer from ExportEstimate_CVP where month = Mar}
+define buffCVP_AprAug {select buffer from ExportEstimate_CVP where month = Apr}
+define buffCVP_MayAug {select buffer from ExportEstimate_CVP where month = May}
+
+! is this a 60-20-20 wet year?
+define wetSJR {
+    case Wet {
+        condition wyt_SJR == 1
+        value 1.}
+    case other {
+        condition always
+        value 0.}
+}
+
+define HighCVPSLmod {
+    case HighMayS11 {
+        condition month==MAY .and. S11(-1)>700.
+        value 90.}
+    case otherwise {
+        condition always 
+        value 0.}
+}
+! Estimate Export Capability for use in determining delivery target limitations
+define CVPDelCapEst {
+    case March {
+        condition month==MAR
+        value estCVPExpThruAug
+            + S11(-1) - 45. + jbypass_del + AnnualBanksCVP }
+    case April {
+        condition month == APR
+        value estCVPExpThruAug
+            + S11(-1) - 45. + jbypass_del + AnnualBanksCVP }
+    case May {
+        condition month == MAY
+        value estCVPExpThruAug
+            + S11(-1) - 45. + jbypass_del + AnnualBanksCVP + HighCVPSLmod}
+    case otherwise {
+        condition always
+        value 0.0 }
+    }
+define CVPDelCapEst_io {
+    case March {
+        condition month>=MAR .and. month <= MAY
+        value CVPDelCapEst + min(SIO_CVP(-1),max_return_cvp)}
+    case otherwise {
+        condition always
+        value 0.0 }
+    }
+define CVPDelCapEstdv {alias CVPDelCapEst kind 'DELIV-CAPACITY' units 'TAF'}
+define CVPDelCapEstiodv {alias CVPDelCapEst_io kind 'DELIV-CAPACITY' units 'TAF'}
+
+define AnnDelCapEst {
+    case March {
+        condition month==MAR
+        value CVPDelCapEst/factCVP_MarAug }
+    case April {
+        condition month == APR
+        value CVPDelCapEst/factCVP_AprAug }
+    case May {
+        condition month == MAY
+        value CVPDelCapEst/factCVP_MayAug }
+    case otherwise {
+        condition always
+        value 0.0 }
+    }
+define AnnDelCapEst_io {
+    case March {
+        condition month==MAR
+        value CVPDelCapEst_io/factCVP_MarAug }
+    case April {
+        condition month == APR
+        value CVPDelCapEst_io/factCVP_AprAug }
+    case May {
+        condition month == MAY
+        value CVPDelCapEst_io/factCVP_MayAug }
+    case otherwise {
+        condition always
+        value 0.0 }
+    }
+define AnnDelCapEstdv {alias AnnDelCapEst kind 'DELIV-CAPACITY' units 'TAF'}
+define AnnDelCapEstiodv {alias AnnDelCapEst_io kind 'DELIV-CAPACITY' units 'TAF'}
+
+define del_first_cvp_s {
+  case MarMay {
+    condition month >= MAR .and. month <= MAY
+    value min(AnnDelCapEst, Exp_Idx_CVP_adj/factCVP_AprAug) }
+  case other {
+    condition always
+    value 0.}
+}
+
+define del_first_cvp_s_io {
+  case MarMay {
+    condition month >= MAR .and. month <= MAY
+    value min(AnnDelCapEst_io, Exp_Idx_CVP_adj_io/factCVP_AprAug) }
+  case other {
+    condition always
+    value 0.}
+}
+
+define deltar_cvps1dv {alias del_first_cvp_s kind 'DEL-TARGET' units 'TAF'}
+define deltar_cvps1iodv {alias del_first_cvp_s_io kind 'DEL-TARGET' units 'TAF'}
+
+! Moved this logic from delcar_cvp_sys.wresl because Stage 1 transfers should not increase NOD allocations LGB
+define CVP_Targ {select CVP_Phase8 from WTS_Stage1_Targets where year=transfersyear}
+define SaltCostFact_stg1 {select ItemValue from WTS_JobControl where Item=11.}
+
+define del_second_cvp_s {value min(del_first_cvp_s + CVP_Targ*(1.-SaltCostFact_stg1), acvpdem_total_s)} ! Added logic to include Stage 1 Transfers in the delivery target LGB
+define del_second_cvp_s_io {value min(del_first_cvp_s_io + CVP_Targ*(1.-SaltCostFact_stg1), acvpdem_total_s)}
+
+define deltar_cvps2dv {alias del_second_cvp_s kind 'DEL-TARGET' units 'TAF'}
+define deltar_cvps2iodv {alias del_second_cvp_s_io kind 'DEL-TARGET' units 'TAF'}
+
+define est_cvp_conv_use_s {value max(0.,min(del_second_cvp_s_io - del_second_cvp_s, max_return_cvp))}
+define est_cvp_conv_use {value max(est_cvp_conv_use_s,est_cvp_conv_use_sys)}
+define est_cvp_ioret_ {alias est_cvp_conv_use kind 'estimated-transfer' units 'taf'}
+define max_return_swp2 {value max(0., max_return_swp - est_cvp_conv_use)}
+
+define deltar_cvp_sdv {std kind 'DEL-TARGET' units 'taf'}
+
+define del_third_cvp_s {
+  case initialdel {
+    condition month <= FEB .and. wateryear == BgnWY
+    value acvpdem_total_s }
+  case march_april {
+    condition month >= MAR .and. month <=MAY
+    value del_second_cvp_s_io }
+  case other {
+    condition always
+    value max(deltar_cvp_sdv(-1), del_second_cvp_s_io) }
+}
+
+define deltar_cvp_s {value min(del_third_cvp_s, acvpdem_total_s) }
+
+goal save_deltar_cvp_s {deltar_cvp_sdv = deltar_cvp_s}
+
+! In summer months, compute whether conditions south of delta warrant adjusting the allocation upwards
+! June - the water supply we have now is the end-of-May San Luis plus the May-Aug export estimate minus 
+! what was actually exported in May (which is now the June-Aug export estimate).  If this will allow a
+! total delivey greater than what the allocation is, let's increase the allocation.  
+
+! Define CVP SOD Demand through August 
+! (values in the table for Sept-Feb are 9999 as dummy placeholders
+define Seas_CVP_SODdem {select tot from SeasCVPSODdem where month=month}
+define Seas_CVP_SODag  {select ag  from SeasCVPSODdem where month=month}
+define Seas_CVP_SODmi  {select mi  from SeasCVPSODdem where month=month}
+define Seas_CVP_SODrf  {select rf  from SeasCVPSODdem where month=month}
+define Seas_CVP_SODex  {select ex  from SeasCVPSODdem where month=month}
+define Seas_CVP_SODls  {select ls  from SeasCVPSODdem where month=month}
+
+! calculate the remaining water supply available through August
+! CVPSL available storage, James bypass inflow (in June) and the May export estimate 
+! minus what has actually been exported since then.   
+define Summer_SOD_WS {
+    case initialdel {
+        condition month <= FEB .and. wateryear == BgnWY
+        value 0. }
+    case June {
+        condition month==JUN
+        value max(0., S11(-1)-45. + jbypass_del + estCVPExpThruAugdv(-1) - D418(-1)*cfs_taf(-1)) }
+    case July {
+        condition month==JUL
+        value max(0., S11(-1)-45. + estCVPExpThruAugdv(-2) - D418(-1)*cfs_taf(-1) - D418(-2)*cfs_taf(-2)) }
+    case Aug {
+        condition month==AUG
+        value max(0., S11(-1)-45. + estCVPExpThruAugdv(-3) - D418(-1)*cfs_taf(-1) - D418(-2)*cfs_taf(-2) - D418(-3)*cfs_taf(-3)) }
+    case otherwise {
+        condition always
+        value 0. }
+}
+
+! how much of that water supply is already allocated through August
+define Summer_SOD_WSex {case OctFebBgnWY {condition month <= FEB .and. wateryear == BgnWY value 0. } case otherwise {condition always value perdv_cvpex_s(-1)*Seas_CVP_SODex}}
+define Summer_SOD_WSrf {case OctFebBgnWY {condition month <= FEB .and. wateryear == BgnWY value 0. } case otherwise {condition always value perdv_cvprf_s(-1)*Seas_CVP_SODrf}}
+define Summer_SOD_WSmi {case OctFebBgnWY {condition month <= FEB .and. wateryear == BgnWY value 0. } case otherwise {condition always value perdv_cvpmi_s(-1)*Seas_CVP_SODmi}}
+define Summer_SOD_WSag {case OctFebBgnWY {condition month <= FEB .and. wateryear == BgnWY value 0. } case otherwise {condition always value perdv_cvpag_s(-1)*Seas_CVP_SODag}}
+
+! Calculate whether the new water supply outlook has improved
+! Can it cover more than the allocation?
+define SummerSODIncrease {
+    case JunAug {
+        condition month>=JUN .and. month <=AUG
+        value max(0., Summer_SOD_WS - Seas_CVP_SODls - Summer_SOD_WSex - Summer_SOD_WSrf - Summer_SOD_WSmi - Summer_SOD_WSag)}
+    case otherwise {
+        condition always
+        value 0.}
+}
+! Split the increased water supply between Ag and MI
+define MI_SOD_gap {
+    case initialinc {
+        condition month <= FEB .and. wateryear == BgnWY
+        value 0. }
+    case MarMay {
+        condition month>=MAR .and. month<=MAY
+        value 0. }
+    case JunAug {
+        condition month>=JUN .and. month <=AUG
+        value (1-perdv_cvpmi_s(-1))*Seas_CVP_SODmi}
+    case otherwise {
+        condition always
+        value 0.}
+}
+define Ag_SOD_gap {
+    case initialinc {
+        condition month <= FEB .and. wateryear == BgnWY
+        value 0. }
+    case MarMay {
+        condition month>=MAR .and. month<=MAY
+        value 0. }
+    case JunAug {
+        condition month>=JUN .and. month <=AUG
+        value (1-perdv_cvpag_s(-1))*Seas_CVP_SODag}
+    case otherwise {
+        condition always
+        value 0.}
+}
+
+define SOD_Inc_Ag {
+    case JunAug {
+        condition month>=JUN .and. month <=AUG .and. (Ag_SOD_gap+MI_SOD_gap)>1.
+        value SummerSODIncrease*AG_SOD_gap/(Ag_SOD_gap+MI_SOD_gap)}
+    case otherwise {
+        condition always
+        value 0.}
+}
+define SOD_Inc_MI {
+    case JunAug {
+        condition month>=JUN .and. month <=AUG .and. (Ag_SOD_gap+MI_SOD_gap)>1.
+        value SummerSODIncrease*MI_SOD_gap/(Ag_SOD_gap+MI_SOD_gap)}
+    case otherwise {
+        condition always
+        value 0.}
+}
+define cvp_perdel_incAg_ {std kind 'allocation' units 'none'}
+define cvp_perdel_incMI_ {std kind 'allocation' units 'none'}
+
+define cvp_perdel_incAg_trigger {
+    case PreJun { condition month<JUN value 0.}
+    case JunJul {condition range(month,jun,jul) .and. min(1.-perdv_cvpag_s(-1), SOD_Inc_Ag/Seas_CVP_SODag)>.05 value 1}
+    case otherwise {condition always value 0.}
+}
+define cvp_perdel_incMI_trigger {
+    case PreJun { condition month<JUN value 0.}
+    case JunJul {condition range(month,jun,jul) .and. min(1.-perdv_cvpmi_s(-1), SOD_Inc_MI/Seas_CVP_SODmi)>.05 value 1}
+    case otherwise {condition always value 0.}
+}
+/*
+define cvp_perdel_incAg {
+    case initialinc {
+        condition month <= FEB .and. wateryear == BgnWY
+        value 0. }
+    case MarMay {
+        condition month>=MAR .and. month<=MAY
+        value 0. }
+    case June {
+        condition month==JUN .and. cvp_perdel_incAg_trigger>.5
+        value min(0.05, min(1.-perdv_cvpag_s(-1), SOD_Inc_Ag/Seas_CVP_SODag))}
+    case JulyContinue {
+        condition month==JUL .and. cvp_perdel_incAg_(-1)>.04
+        value cvp_perdel_incAg_(-1)}
+    case JulyAugment {
+        condition month==JUL .and. cvp_perdel_incAg_trigger>.5
+        value min(0.05, min(1.-perdv_cvpag_s(-1), SOD_Inc_Ag/Seas_CVP_SODag))}
+    case otherwise {
+        condition always
+        value cvp_perdel_incAg_(-1)}
+}
+define cvp_perdel_incMI {
+    case initialinc {
+        condition month <= FEB .and. wateryear == BgnWY
+        value 0. }
+    case MarMay {
+        condition month>=MAR .and. month<=MAY
+        value 0. }
+    case June {
+        condition month==JUN .and. cvp_perdel_incMI_trigger>.5
+        value min(0.05, min(1.-perdv_cvpmi_s(-1), SOD_Inc_MI/Seas_CVP_SODmi))}
+    case JulyContinue {
+        condition month==JUL .and. cvp_perdel_incMI_(-1)>.04
+        value cvp_perdel_incMI_(-1)}
+    case JulyAugment {
+        condition month==JUL .and. cvp_perdel_incMI_trigger>.5
+        value min(0.05, min(1.-perdv_cvpmi_s(-1), SOD_Inc_MI/Seas_CVP_SODmi))}
+    case otherwise {
+        condition always
+        value cvp_perdel_incMI_(-1)}
+}
+
+*/
+define cvp_perdel_incAg {value 0.}
+define cvp_perdel_incMI {value 0.}
+goal set_cvp_perdel_incAg_ {cvp_perdel_incAg_ = cvp_perdel_incAg}
+goal set_cvp_perdel_incMI_ {cvp_perdel_incMI_ = cvp_perdel_incMI}
+
+        
+
+
+
+        

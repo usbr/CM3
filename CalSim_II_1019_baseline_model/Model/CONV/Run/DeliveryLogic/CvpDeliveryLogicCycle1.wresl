@@ -1,0 +1,19 @@
+include '..\..\..\common\cvp_dellogic\cvp_dellogic_s\demands_s\cvp_demands_s.wresl'
+include '..\..\..\common\cvp_dellogic\cvp_dellogic_sys\EstCvpExpSAdj.wresl'
+
+include '..\..\..\common\cvp_dellogic\cvp_dellogic_sys\demands_sys\sumcvpdem_sys.wresl'
+include '..\..\..\common\cvp_dellogic\cvp_dellogic_sys\demands_sys\sumcvpdem_dr_sys.wresl'
+
+include '..\..\..\common\cvp_dellogic\cvp_dellogic_sys\wsi_sys\cvp_store_defs_sys.wresl'
+include '..\..\..\common\cvp_dellogic\cvp_dellogic_sys\wsi_sys\wsi_cvp_sys.wresl'
+include '..\..\..\common\cvp_dellogic\cvp_dellogic_sys\di_sys\di_cvp_sys.wresl'
+include 'delcar_cvp_sys.wresl'
+
+include '..\..\..\common\cvp_dellogic\cvp_dellogic_s\exp_based\export_index_cvp.wresl'
+include '..\..\..\common\cvp_dellogic\cvp_dellogic_s\exp_based\exp_based_del_cvp_s.wresl'
+include 'delcar_cvp_s.wresl'
+
+include 'cvpcut.wresl' 
+
+include '..\..\..\common\cvp_dellogic\cvp_dellogic_s\deliveries_s\cvp_arcsplit_s_cyc1.wresl'
+
