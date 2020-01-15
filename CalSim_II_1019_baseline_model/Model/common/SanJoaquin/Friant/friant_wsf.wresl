@@ -1,0 +1,153 @@
+! Friant_wsf.wresl
+! Created for the Upper San Joaquin River Basin Storage Investigation Project
+! Implements Friant water supply forecast logic.
+! Revised by C. Hsu, 02/25/03, USBR, for review and documentation project
+!##############################################################################
+/*
+Determines available water supply for impending irrigation season.
+*/
+
+/*
+Sum of Friant inflow from current month (or from June if current month is after June)
+through September - perfect foresight used for water supply
+*/
+define I18_mon_thru_sep {
+    case MarthruSep {
+        condition   month >= mar .and. month <= sep
+        sum(i=0,Sep-month,1) I18(i)*cfs_taf(i) }
+    case otherwise  {
+        condition   always
+        value 0.0 } }
+
+! Sum of the average evaporation losses from Friant for current month through September
+define FREvap_sep {
+    case MarthruJun {
+        condition   month >= mar .and. month <= jun
+        select thru_sep
+        from Friant_Evap
+        where contract_month = contract_month }
+    case otherwise {
+        condition   always
+        value 0.0  } }
+
+! Minimum required San Joaquin River release from Friant 
+! (not used to compute water supply forecast, but used in other calculations)
+define C18_min {
+    select inc
+    from Upper_SJR_losses
+    where contract_month = contract_month }
+
+
+! Sum of the combined Madera and Friant-Kern canal losses from current month through September
+define FRloss_sep {
+    case MarthruJun {
+        condition   month >= mar .and. month <= jun
+        select thru_sep
+        from Friant_Canal_losses
+        where contract_month = contract_month }
+    case otherwise {
+        condition   always
+        value 0.0  } }
+
+define TREvap_sep {value A17last*FREvap_sep/A18last}
+
+/* 
+@jmg 2016.11.09 - we have an value for annual exchange contractor shortage from cvpcut
+here we first apportion that to the Friant water supply by reducing the watersupply (WS)
+forecast for March-June by the amount of the shortfall;
+@jmg 2016.11.15 - updating apportionment so that the shortfall is increased by the expected
+*                 losses to Gravelly Ford; given the logic for losses at C605 based on flow
+*                 at C603, the marginal loss for extra flow is (0.05/0.95), so shortfall should
+*                 be increased by shortfall*(0.05/0.95) to ensure all the water makes it to
+*                 D607B and D608B
+*/
+define PEX_short_annvol_adj { value PEX_short_annvol + PEX_short_annvol*(0.05/0.95)}
+define PEX_short_annvol_chk { alias PEX_short_annvol kind 'TEMPORARY' units 'TAF'}
+
+/*
+ sum of Exchange water delivered prior to current month
+ - this segment is retrospective - actual deliveries for 
+   this time step are calculated in friant_deliveries.wresl
+ @jmg 2016.11.28
+ */
+define prior_FEX_del {
+	case march {
+		condition month == mar
+		value 0.0 }
+	case initialyear {
+		condition month < mar .and. wateryear ==1922
+		value 0.0 }
+	case otherwise {
+		condition always
+		sum(i=prevmar, -1, 1) FEX_delivery(i) }
+}
+! Allows past values of prior_FEX_del to be available as prior_FEX_deliv_tmp
+!define prior_FEX_deliv_tmp {upper unbounded lower unbounded kind 'TEMPORARY' units 'TAF' }
+!goal set_prior_FEX_deliv_tmp {prior_FEX_deliv_tmp = prior_FEX_del }
+
+define PEX_short_annvol_adj2 {
+	case March {
+		condition month == mar
+		value PEX_short_annvol_adj
+	}
+	case AfterMarch {
+		condition month > mar
+		value PEX_short_annvol_adj - prior_FEX_del
+	}
+	case otherwise {
+		condition always
+		value 0.0
+	}
+}
+/*
+Friant water supply forecast used to determine available supply for irrigation season
+*/
+define Fr_WS_for {
+    case MarthruJun {
+       condition  month >= mar .and. month <= jun
+           value max(0.0, I18_mon_thru_sep + SIO_FWUA(-1) - S18level1 - S17level1
+                          - FREvap_sep -TREvap_sep - FRloss_sep - SJRR_mon_sep - PEX_short_annvol_adj2)  }  !@jmg 2016.11.09 - reducing by PEX_short_annvol
+    case JulthruFeb {
+        condition always
+        value 0.0 } }
+
+! need a temp variable for water supply calc to reference prior values
+define fr_ws_for_tmp1 {upper unbounded lower unbounded kind 'TEMPORARY' units 'TAF' }
+goal set_frwsfor_tmp1 {fr_ws_for_tmp1= Fr_WS_for }
+
+define fex_alloc1 {
+	case firstmonth {
+        condition wateryear == 1922 .and. month < 6  !@jmg set alloc to 0 for Oct-Feb of first year
+        value 0.0 }
+	case MarThruJun {
+		condition month >= mar .and. month <= jun
+		value Fr_WS_for }
+    case otherwise {
+    	condition always
+    	value fr_ws_for_tmp1(prevJun) }       
+}
+
+define fex_alloc2 {
+	case zeroAlloc1 {  ! case for when forecast that includes full Exchange shortage is less than 0.
+		condition fex_alloc1 == 0.0 .and. month >= mar .and. month <= sep
+		value  (I18_mon_thru_sep + SIO_FWUA(-1) - S18level1 - S17level1
+                          - FREvap_sep -TREvap_sep - FRloss_sep - SJRR_mon_sep)
+	}
+	case zeroOctober {
+		condition month==oct .and. fex_alloc1 ==0.0 .and. wateryear > 1922
+		value  (I18_mon_thru_sep + SIO_FWUA(-1) - S18level1 - S17level1
+                          - FREvap_sep -TREvap_sep - FRloss_sep - SJRR_mon_sep)
+	}
+	case posOctober {
+		condition month==oct .and. fex_alloc1 > 0.0
+		value PEX_short_annvol_adj
+	}
+!	case NovThruFeb {
+!		condition month == nov .or. month==dec .or. month <= feb
+!		value 0.0
+!	}
+	case posAlloc1 {
+		condition always
+		value PEX_short_annvol_adj
+	}
+}
