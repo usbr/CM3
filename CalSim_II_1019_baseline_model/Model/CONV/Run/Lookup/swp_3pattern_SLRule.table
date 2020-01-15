@@ -1,0 +1,20 @@
+! New Baselines version (Jun 2009), based on (version 9B1) Common Assumptions CMP
+! 2005 Level of Development Assumptions
+! source spreadsheet: BST_SWP_SOD_2013DRR_081413_Future.xls
+swp_3pattern_SLRule
+month            percent          demand           b4lowpoint
+                8               30            362.0           2375.6
+                9               30            589.5           2013.6
+               10               30            743.1           1424.1
+               11               30            680.9            680.9
+               12               30            537.3            537.3
+                8               50            282.5           2166.3
+                9               50            504.0           1883.8
+               10               50            673.7           1379.8
+               11               50            706.1            706.1
+               12               50            603.8            603.8
+                8              100            364.1           1789.7
+                9              100            446.1           1425.7
+               10              100            469.6            979.6
+               11              100            510.0            510.0
+               12              100            402.1            402.1
