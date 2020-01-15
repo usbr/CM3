@@ -1,0 +1,51 @@
+! RV_DXC_balance_calcs.wresl
+! In summer of dry years, closing the DXC for a portion of the month can reduce the need
+! for Shasta to release water to meet Rio Vista flow requirement, conserving cold water.
+! Refer to UPSTREAM cycle results to determine if this is an issue, and compute whether
+! the operation can be adjusted depending on Rock Slough salinity compliance.
+
+define req_bypass {value 7000.}
+define DXC_frac_open_RV_minBP {
+    case OctOMRControl {
+        condition   month == oct .and. D409[Delta] < D409[PRESETUP]
+        value ((1.-0.1321)*req_bypass - Rio_req - 1087. - C402B[PRESETUP] - D404[PRESETUP] + I404)/(0.1896*req_bypass-36.)
+    }
+    case otherwise {
+        condition   always
+        value       1.
+    }
+}
+define days_closed_1 {value max(0, min(daysin,int(daysin*(1.-DXC_frac_open_RV_minBP))))}
+define days_open_1 {value daysin - days_closed_1}
+! check Rock Slough salinity conditions if the DXC was closed this month
+define RS_estEC_RV_bypass_int {
+    value AnnEC(C400(-4),C400(-3),C400(-2),C400(-1),req_bypass,
+           D409(-4),D409(-3),D409(-2),D409(-1),D409[Delta],
+           C639(-4),C639(-3),C639(-2),C639(-1),C639[PRESETUP],
+           DXC(-4),DXC(-3),DXC(-2),DXC(-1),days_open_1,
+           net_DICU(-4),net_DICU(-3),net_DICU(-2),net_DICU(-1),net_DICU[PRESETUP],
+           sac_oth(-4),sac_oth(-3),sac_oth(-2),sac_oth(-1),sac_oth[PRESETUP],
+           exp_oth(-4),exp_oth(-3),exp_oth(-2),exp_oth(-1),exp_oth[PRESETUP],
+           VERNWQFINAL(-4),VERNWQFINAL(-3),VERNWQFINAL(-2),VERNWQFINAL(-1),VernWQfinal[PRESETUP],
+           int(daysindv(-4)),int(daysindv(-3)),int(daysindv(-2)),int(daysindv(-1)),daysin,
+           int(2),int(monthly_ave),month,wateryear)}  ! 2 is for RS
+
+! This is CCWD's first approximation (Matt Moses, July 2006)
+! Use Maximum of the following two equations:
+!   Cl = 0.285*EC - 50    (this is the 'seawater' line)
+!   Cl = 0.15*EC - 12      (this is the 'ag. drainage' line)
+! These two equations intercept at Cl=30.222... and EC=281.481481481...
+define RS_estCL_RV_bypass_int {value max(0.285*RS_estEC_RV_bypass_int - 50.,
+                                 0.150*RS_estEC_RV_bypass_int - 12.)}
+define RS_estCL_RV_bypass_intdv {alias RS_estCL_RV_bypass_int kind 'SALINITY' units 'MG/L'}
+
+define if_rv_days_open {
+    case NotOctOrOverStd {
+        condition   month > oct .or. RS_estCL_RV_bypass_int > rs_cl_std_sv
+        value       daysin
+    }
+    case otherwise {
+        condition   always
+        value       days_open_1
+    }
+}
