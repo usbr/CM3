@@ -1,0 +1,280 @@
+! SJR_ChannelSplits.wresl
+! The following are defininitions and goals to split arcs within demand and channel arcs
+! Revised by C. Hsu, 3/4/03, USBR, for review and documentation project
+!#########################################################################################
+/*
+Arc splits are used to route seperate types of water (beyond just the minimum in-stream
+flow and excess flows) in channel arcs, and to delivery different types of water in delivery arcs.
+Split-arcs for reservoir releases (plus VAMP releases from Exchange Contractors via DMC)
+*/
+
+/*
+New Melones arc splits
+*/
+! Release from New Melones main channel flow
+define C10M {std kind 'FLOW-MAIN' units 'cfs'}
+! Release from New Melones for flood flow
+define C10F {std kind 'FLOW-FLOOD' units 'cfs'}
+! Release from New Melones for water quality
+define C10WQ {std kind 'FLOW-RELEASE' units 'cfs'}
+!define C10VAMP {std kind 'FLOW-RELEASE' units 'cfs'}
+! Release to stay in Stanislaus Mainstem
+define C10VAMP_M {std kind 'FLOW-RELEASE' units 'cfs'}
+! Release to be transfered to Modesto ID
+define C10VAMP_T {std kind 'FLOW-RELEASE' units 'cfs'}
+! Release from New Melones for dissolved oxygen
+define C10DO {std kind 'FLOW-RELEASE' units 'cfs'}
+! Release from New Melones for minimum flow
+define C10MIN {std kind 'FLOW-RELEASE' units 'cfs'}
+! Release from New Melones for NMFS RPA on Stanislaus flows
+define C10RPA {std kind 'FLOW-RELEASE' units 'cfs'}
+! Release from New Melones for instream flow
+define C10INSTREAM {std kind 'FLOW-RELEASE' units 'cfs'}
+! Sum all the components of the flow for Stanislaus River below New Melones
+goal aggregC10 { C10 = C10M + C10F + C10WQ + C10VAMP_M + C10VAMP_T + C10DO + C10MIN + C10RPA + C10INSTREAM }
+!goal aggregC10VAMP {C10VAMP = C10VAMP_M + C10VAMP_T}
+
+
+/*
+Don Pedro arc spilts
+*/
+! Release from Don Pedro for main flow
+define C81M {std kind 'FLOW-MAIN' units 'cfs'}
+! Release from Don Pedro for flood flow
+define C81F {std kind 'FLOW-FLOOD' units 'cfs'}
+! Release from Don Pedro for VAMP
+define C81VAMP {std kind 'FLOW-RELEASE' units 'cfs'}
+! Add VAMP release for New Melones Transfer
+define C81_STAN_VAMP {std kind 'FLOW-RELEASE' units 'cfs'}
+! Sum all the flow components for flow of Tuolumne River below New Don Pedro
+goal aggregC81 { C81 = C81M + C81F + C81VAMP + C81_STAN_VAMP }
+
+
+/*
+Lake McClure arc spilts
+*/
+! Release from Lake McClure for main flow
+define C20M {std kind 'FLOW-MAIN' units 'cfs'}
+! Release from Lake McClure for flood flow
+define C20F {std kind 'FLOW-FLOOD' units 'cfs'}
+! Release from Lake McClure for VAMP
+define C20VAMP {std kind 'FLOW-RELEASE' units 'cfs'}
+! Minmum flow release from Lake McClure
+define C20min {std kind 'FLOW-RELEASE' units 'cfs'}
+! Sum all the flow components for flow below Lake McCLure
+goal aggregC20 { C20 = C20M + C20F + C20VAMP + C20MIN }
+
+
+/*
+Eastman Lake arc spilts
+*/
+! Release from Eastman Lake for main channel flow
+define C53M {std kind 'FLOW-MAIN' units 'cfs'}
+! Release from Eastman Lake for flood flow
+define C53F {std kind 'FLOW-FLOOD' units 'cfs'}
+! Sum all the components for the flow of Chowchilla River below Eastman Lake
+goal aggregC53 { C53 = C53M + C53F }
+! Define flow loss on main channel
+define L582_main {std kind 'loss-main' units 'cfs'}
+! Define spill loss
+define L582_spill {std kind 'loss-spill' units 'cfs'}
+! Chowchilla River accretion
+goal aggregL582 {L582 = L582_main + L582_spill}
+
+
+/*
+Hensley Lake arc spilts
+*/
+! Release from Hensley Lake for main channel flow
+define C52M {std kind 'flow-main' units 'cfs'}
+! Release from Hensley Lake for flood flow
+define C52F {std kind 'FLOW-FLOOD' units 'cfs'}
+! Flow components for the flow of Fresno River below Hensley Lake
+goal aggregC52 { C52 = C52M + C52F }
+! Fresno River main channel flow
+define L588_main {std kind 'loss-main' units 'cfs'}
+! Fresno River spill losses
+define L588_spill {std kind 'loss-spill' units 'cfs'}
+! Fresno River flow equal to main channel flow plus spill losses
+goal aggregL588 {L588 = L588_main + L588_spill}
+
+
+
+/*
+Arc spilts for Millerton Lake
+*/
+! Release from Millerton Lake for main channel flow
+define C18M {std kind 'FLOW-MAIN' units 'cfs'}
+! Release from Millerton Lake for flood flow
+define C18F {std kind 'FLOW-FLOOD' units 'cfs'}
+! Snowmelt release from Millerton Lake
+define C18A {std kind 'FLOW-SNOWMELT' units 'cfs'}
+! Release from Millerton for Exchange Contractors
+define C18E {std kind 'FLOW-MAIN' units 'cfs'}  !@jmg 2016.11.10: a new variable to acct for Friant water for EXC
+! Total of Millerton release equal to flow in main channel plus flood flow plus snowmelt
+goal aggregC18 { C18 = C18M + C18F + C18A + C18E}  !@jmg 2016.11.10: modified to include exchange water
+! Define channel losses for the San Joaquin River below Gravelly Ford
+define C603_loss {std kind 'flow-loss' units 'cfs'}
+! Define main channel flows for the San Joaquin River below Gravelly Ford
+define C603_main {std kind 'flow-channel' units 'cfs'}
+! Define releases for Exchange contractors as a separate variable @jmg 2016.11.14
+define C603E {std kind 'flow-channel' units 'cfs'}        !@jmg
+goal set_C603E {C603E = C18E}                             !@jmg this goal assumes that losses are not removed from water meant for EXC at 603
+! Total channel flows for SJR below Gravelly Ford equal to channel losses plus main channel flow
+!goal aggregC603 {C603 = C603_loss + C603_main + C603E}    !@jmg  Option A for handling Exchange water
+goal aggregC603 {C603 = C603_loss + C603_main}             !@jmg  Option B for handling Exchange water
+
+! Split C603_main into restoration/settlement flows and flood/snowmelt release
+define C603_mainsjrr {std kind 'flow-channel' units 'cfs'} ! sjr restoration
+define C603_mainsmfl {std kind 'flow-channel' units 'cfs'} ! snowmelt/flood
+goal aggregC603_main {C603_main = C603_mainsjrr + C603_mainsmfl}
+! Define Madera Canal losses, units = CFS
+define D18b_loss {std kind 'flow-loss' units 'cfs'}
+! Define Madera Canal main channel flows, Class 1, units = CFS
+define D18B_C1 {std kind 'flow-delivery' units 'cfs'}
+! Define Madera Canal main channel flows, Class 2, units = CFS
+define D18B_C2 {std kind 'flow-delivery' units 'cfs'}
+! Define Madera Canal 215 flows, units = CFS
+define D18b_215 {std kind 'flow-delivery' units 'cfs'}
+!define Madera Canal 16(b) flows
+define D18B_16B {std kind 'flow-delivery' units 'cfs'}
+! Madera Canal flows equal to the sum of the canal losses plus main channel flow plus 215 flow
+goal aggregD18b {D18B = D18B_loss + D18B_C1 + D18B_C2 + D18B_215 + D18F + D18B_16B}
+! Define Friant/Kern Canal losses, units = CFS
+define D18A_loss {std kind 'flow-loss' units 'cfs'}
+! Define Friant/Kern Canal main channel flows, Class 1, units = CFS
+define D18A_C1 {std kind 'flow-delivery' units 'cfs'}
+! Define Friant/Kern Canal main channel flows, Class 2, units = CFS
+define D18A_C2 {std kind 'flow-delivery' units 'cfs'}
+! Define Friant/Kern Canal 215 flows, units = CFS
+define D18A_215 {std kind 'flow-delivery' units 'cfs'}
+!Define Friant/Kern Canal 16b flows
+define D18A_16B {std kind 'flow-delivery' units 'cfs'}
+! Friant/Kern Canal flows equal to the sum of the canal losses plus main channel flow plus 215 flow
+goal aggregD18A {D18A_FWUA = D18A_loss + D18A_C1 + D18A_C2 + D18A_215 + D18A_16B}
+
+
+/*
+Bifurcation of Millerton Spills and Chowchilla Bypass
+Inlet to the Mendota Pool split into a main-arc (capacity 2000 cfs)
+and a last resort flood-arc
+*/
+! Define main channel flow arc for Chowchilla Bypass, units = CFS
+!WB define C605A_main { upper 2000. kind 'flow-channel' units 'cfs' }
+define C605A_main { upper 1400. kind 'flow-channel' units 'cfs' }   !WM
+define inc_Exc605loss_fac {value 0.05 } ! @jmg 2016.11.14: factor that defines portion of increase in losses attributable
+                                         !                   to increase in flows from EXC releases
+define C605A_E {std kind 'flow-channel' units 'cfs'} !@jmg 2016.11.14 add var to transmit EXC release water from 605 to 607
+define inc_Exc605loss_amt {std kind 'flow-channel' units 'cfs'}
+
+goal set_C605ae_incloss {inc_Exc605loss_amt = C603E*inc_Exc605loss_fac}
+
+goal set_C605A_E { C605A_E = C603E - L605E} ! inc_Exc605loss_amt}  !@jmg 2016.11.15 - Option B - for EXC water - explicit separate calculation of losses
+
+
+! Define flood flow arc for Chowchilla Bypass, units = CFS
+define C605A_flood { std kind 'flow-flood' units 'cfs' }
+! Chowchilla Bypass flood equal to channel flow plus flood flow
+!goal aggregC605A { C605A = C605A_main + C605A_flood + C605A_E }   !@jmg Option A for EXC water: modf'd to include EXC release water
+goal aggregC605A {C605A = C605A_main + C605A_Flood }               !@jmg OPtion B - separate calc/acct of losses from EXC water
+
+! @jmg 2016.11.14 - split exchange delivery water btwn D607B and D608B 
+! according to the fraction of demand in each
+define d607b_e_frac { value 0.8095 }   ! @jmg 2016.11.14: ratio of svar D607B to (D607B+D608B)
+define d608b_e_frac { value 0.1905 }   ! @jmg 2016.11.14: ratio of svar D608B to (D607B+D608B)
+define D607B_E { std kind 'flow-delivery' units 'cfs'}
+define D608B_E { std kind 'flow-delivery' units 'cfs'}
+goal set_D607be { D607B_E = d607b_e_frac * C605A_E}
+goal set_D608be { D608B_E = d608b_e_frac * C605A_E}
+
+
+
+! =============================== Exchange Deliveries ============================
+!  @jmg 2016.11.15 logic copied from \common\wsi_di_gen\CVP\tot_del_CVP_s.wresl
+define cvpdel_d707 {
+
+       case      MAR  {
+       condition month == MAR .and. wateryear > 1922
+       sum(i=-1,-12,-1) D707(i) * cfs_taf(i) }
+
+       case      otherwise {
+       condition always
+       value     0 }
+       }
+
+define cvpdel_d607B {
+
+       case      MAR  {
+       condition month == MAR .and. wateryear > 1922
+       sum(i=-1,-12,-1) D607B(i) * cfs_taf(i) }
+
+       case      otherwise {
+       condition always
+       value     0 }
+       }
+
+define cvpdel_d608B {
+
+       case      MAR  {
+       condition month == MAR .and. wateryear > 1922
+       sum(i=-1,-12,-1) D608B(i) * cfs_taf(i) }
+
+       case      otherwise {
+       condition always
+       value     0 }
+       }
+
+define cvpdel_d607B_E {
+
+       case      MAR  {
+       condition month == MAR .and. wateryear > 1922
+       sum(i=-1,-12,-1) D607B_E(i) * cfs_taf(i) }
+
+       case      otherwise {
+       condition always
+       value     0 }
+       }
+
+define cvpdel_d608B_E {
+
+       case      MAR  {
+       condition month == MAR .and. wateryear > 1922
+       sum(i=-1,-12,-1) D608B_E(i) * cfs_taf(i) }
+
+       case      otherwise {
+       condition always
+       value     0 }
+       }
+
+! Actual Exchange Deliveries
+define cvpdel_d_ex_s {value cvpdel_d707 + cvpdel_d607B + cvpdel_d608B + cvpdel_d607B_E + cvpdel_d608B_E }
+
+! create a variable record of combined deliveries to SJR exchange contractors @jmg 2016.11.15
+define totPEX_del { alias cvpdel_d_ex_s kind 'flow-delivery' units 'taf' }
+
+/*
+New Melones Reservoir
+Tulloch excess flows seperated into a flood arc (from spills in from New Melones),
+WQ, VAMP, DO and an excess flow arc above the minimum flow requirement.
+(used to be Goodwin at node 16)
+*/
+! Define flow release for water quality from Tulloch
+define C520WQ {std kind 'FLOW-RELEASE' units 'cfs'}
+! Define flow release for VAMP from Tulloch
+define C520VAMP {std kind 'FLOW-RELEASE' units 'cfs'}
+! Define flow release for DO from Tulloch
+define C520DO {std kind 'FLOW-RELEASE' units 'cfs'}
+! Define flow release from flood flow spills
+define C520F {std kind 'FLOW-FLOOD' units 'cfs'}
+! Define excess flow release
+define C520_exc_a {std kind 'FLOW-EXCESS' units 'cfs'}
+! Define minimum flow release from Tulloch, units = CFS
+define C520MIN {std kind 'FLOW-RELEASE' units 'cfs'}
+! Define pass-through of RPA flow release at Tulloch, units = CFS
+define C520RPA {std kind 'FLOW-RELEASE' units 'cfs'}
+! Define instream flow release from Tulloch, units = CFS
+define C520INSTREAM {std kind 'FLOW-RELEASE' units 'cfs'}
+! Sum all the components for the flow release of Tulloch
+goal aggegC520_exc { C520_exc = C520_exc_a + C520WQ + C520VAMP + C520DO /* + C520F*/ + C520MIN + C520RPA /*+ C520INSTREAM*/ }
+
+
