@@ -1,0 +1,21 @@
+! New Baselines version (Jun 2009), based on (version 9B1) Common Assumptions CMP
+! 2005 Level of Development Assumptions
+! source spreadsheet: BST_SWP_SOD_2013DRR_081413_Future.xls
+!
+! Demands from SWPAO/O&M spreadsheets not including carryover demands
+! month=99 is for carryover demand
+CAM_SWPDem
+month                          Dem100      Dem50       Dem30
+                              1      372.83      433.53      430.75
+                              2      324.18      336.08      335.07
+                              3      307.91      322.41      312.45
+                              4      152.46       28.05       23.66
+                              5      131.68       33.20       35.50
+                              6      194.70       46.33       47.08
+                              7      259.12      198.21       72.65
+                              8      364.06      282.49      361.99
+                              9      446.09      504.00      589.52
+                             10      469.56      673.65      743.14
+                             11      510.01      706.11      680.94
+                             12      402.06      603.80      537.33
+                             99      235.42        2.22        0.00

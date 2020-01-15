@@ -1,0 +1,20 @@
+! Exchange contractors monthly demand as a fraction
+! of total annual demand; based on D607B & D608B 
+! input value demand time series
+! Contract month assumed to begin in March
+! @jmg 2016.11.15
+Exchange_Monthly_Demand
+calendar_month  contract_month  CombMonthFrac   CumMonFrac
+1                    11          0.010948          0.971305
+2                    12          0.028695          1.000000
+3                     1          0.079052          0.079053
+4                     2          0.079526          0.158579
+5                     3          0.109858          0.268437
+6                     4          0.145000          0.413437
+7                     5          0.170237          0.583674
+8                     6          0.166668          0.750342
+9                     7          0.108105          0.858447
+10                    8          0.068579          0.927025
+11                    9          0.022858          0.949883
+12                   10          0.010474          0.960357
+
